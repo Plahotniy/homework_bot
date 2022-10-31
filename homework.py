@@ -73,7 +73,7 @@ def check_response(response):
 def parse_status(homework):
     """
     Принимает список домашних работ. Имя и статус работы берется
-    из первого элемента списка, т.е. последней ДЗ.
+    из последней ДЗ.
     """
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
