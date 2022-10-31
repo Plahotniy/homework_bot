@@ -32,6 +32,7 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot, message):
+    """Принимает экземпляр бота и готовое сообщение для пересылки."""
     bot.send_message(TELEGRAM_CHAT_ID, message)
     logging.info('Сообщение отправлено')
 
@@ -84,16 +85,13 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """
-    Проверяет, что все токены указанны.
-    """
+    """Проверяет, что все токены указанны."""
     tokens = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
     return all(x is not None for x in tokens)
 
 
 def main():
     """Основная логика работы бота."""
-
     if not check_tokens():
         sys.exit()
 
