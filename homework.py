@@ -5,6 +5,7 @@ from http import HTTPStatus
 from os import getenv
 
 import requests
+import telegram
 from dotenv import load_dotenv
 from telegram import Bot
 
@@ -117,7 +118,6 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
-            time.sleep(RETRY_TIME)
         finally:
             time.sleep(RETRY_TIME)
 
