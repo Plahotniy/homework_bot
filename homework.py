@@ -33,8 +33,12 @@ HOMEWORK_STATUSES = {
 
 def send_message(bot, message):
     """Принимает экземпляр бота и готовое сообщение для пересылки."""
-    bot.send_message(TELEGRAM_CHAT_ID, message)
-    logging.info('Сообщение отправлено')
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+        logging.info('Сообщение отправлено')
+    except telegram.error:
+        logging.error('Ошибка бота')
+        raise
 
 
 def get_api_answer(current_timestamp):
@@ -46,11 +50,15 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     api_answer = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if api_answer.status_code == HTTPStatus.OK:
+    if api_answer.status_code != HTTPStatus.OK:
+        raise ConnectionError('API не доступно.')
+    elif 'error' in api_answer.json():
+        raise requests.exceptions.JSONDecodeError(
+            'Эндпоинт недоступен', api_answer
+        )
+    else:
         logging.info('Ответ от API получен.')
         return api_answer.json()
-    else:
-        raise ConnectionError('API не доступно.')
 
 
 def check_response(response):
@@ -58,16 +66,13 @@ def check_response(response):
     Принимает ответ API ЯП в формате json.
     Проверяет, что ответ является списком и отдает список домашних работ.
     """
-    if type(response) is dict:
-        if type(response.get('homeworks')) is list:
-            logging.info('данные ответа API проверены.')
-            return response.get('homeworks')
-        else:
-            raise TypeError(
-                'Тип данных ответа API не соответствует ожидаемому.'
-            )
-    else:
+    if not isinstance(response, dict):
         raise TypeError('Критическая ошибка.')
+    elif not isinstance(response.get('homeworks'), list):
+        raise TypeError('Тип данных ответа API не соответствует ожидаемому.')
+    else:
+        logging.info('данные ответа API проверены.')
+        return response.get('homeworks')
 
 
 def parse_status(homework):
@@ -87,12 +92,13 @@ def parse_status(homework):
 def check_tokens():
     """Проверяет, что все токены указанны."""
     tokens = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
-    return all(x is not None for x in tokens)
+    return all(tokens)
 
 
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
+        logging.critical('отсутствуют обязательные переменные окружения.')
         sys.exit()
 
     bot = Bot(token=TELEGRAM_TOKEN)
@@ -107,14 +113,13 @@ def main():
                 send_message(bot, message)
 
             current_timestamp = response.get('current_date')
-            time.sleep(RETRY_TIME)
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            bot.send_message(TELEGRAM_CHAT_ID, message)
+            send_message(bot, message)
             time.sleep(RETRY_TIME)
-        else:
-            print(response)
+        finally:
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
