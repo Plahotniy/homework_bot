@@ -5,7 +5,6 @@ from http import HTTPStatus
 from os import getenv
 
 import requests
-import telegram
 from dotenv import load_dotenv
 from telegram import Bot
 
@@ -37,9 +36,8 @@ def send_message(bot, message):
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logging.info('Сообщение отправлено')
-    except telegram.error:
+    except Exception:
         logging.error('Ошибка бота')
-        raise
 
 
 def get_api_answer(current_timestamp):
@@ -52,13 +50,13 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     api_answer = requests.get(ENDPOINT, headers=HEADERS, params=params)
     if api_answer.status_code != HTTPStatus.OK:
-        raise ConnectionError('API не доступно.')
-    elif 'error' in api_answer.json():
-        raise requests.exceptions.JSONDecodeError(
-            'Эндпоинт недоступен', api_answer
-        )
-    else:
+        raise ConnectionError('Проблемы соединения с сетью.')
+    try:
+        api_answer.json()
         logging.info('Ответ от API получен.')
+    except requests.exceptions.JSONDecodeError:
+        'API недоступен.'
+    else:
         return api_answer.json()
 
 
